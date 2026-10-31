@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Noema — Envision. Materialize.</title>
+  <meta name="description" content="Noema — art direction, identity, and interactive web. AI is our instrument — the intent is ours." />
+  <meta name="theme-color" content="#060a18" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+  <!-- WebGL particle head + light beams (see js/particles.js) -->
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <header class="site-header">
+    <a class="logo" href="#" aria-label="Noema home">Noema</a>
+
+    <div class="meta">
+      <span class="meta__time" id="clock">9:45 AM, CET</span>
+      <a class="meta__mail" href="mailto:hello@noema.ai">hello@noema.ai</a>
+    </div>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="#work">Work</a>
+      <a href="#exhibitions">Exhibitions</a>
+      <a href="#stories">Stories</a>
+      <a href="#about">About</a>
+    </nav>
+
+    <a class="cta-link" href="mailto:hello@noema.ai">
+      <span>Let’s Talk</span>
+      <svg class="arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 9 9 3M4 3h5v5" /></svg>
+    </a>
+
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu">Menu</button>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <nav aria-label="Mobile">
+      <a href="#work">Work</a>
+      <a href="#exhibitions">Exhibitions</a>
+      <a href="#stories">Stories</a>
+      <a href="#about">About</a>
+      <a href="mailto:hello@noema.ai">Let’s Talk ↗</a>
+    </nav>
+  </div>
+
+  <main class="hero">
+    <h1 class="hero__title">
+      <span class="word word--left" data-text="Envision">Envision</span>
+      <span class="word word--right" data-text="Materialize">Materialize</span>
+    </h1>
+
+    <div class="hero__bottom">
+      <div class="intro">
+        <p class="intro__text">
+          Art direction, identity, and interactive web. AI is our instrument — the intent is ours.
+        </p>
+        <div class="intro__actions">
+          <a class="btn btn--light" href="mailto:hello@noema.ai">Start a Project</a>
+          <a class="btn btn--dark" href="#work">See the Work</a>
+        </div>
+      </div>
+
+      <a class="featured" href="#work" aria-label="Featured work: Forma, Website">
+        <span class="featured__thumb" aria-hidden="true"><span class="featured__orb"></span></span>
+        <span class="featured__body">
+          <span class="featured__label">Featured Work</span>
+          <span class="featured__title">Forma, Website</span>
+          <span class="featured__tags">Art Direction, Design, WebGL</span>
+        </span>
+        <svg class="featured__arrow arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 9 9 3M4 3h5v5" /></svg>
+      </a>
+    </div>
+  </main>
+
+  <!-- Plain (non-module) scripts so the page also works when opened straight from disk. -->
+  <script src="js/head-data.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
