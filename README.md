@@ -1,6 +1,6 @@
 # Noema — interactive particle-head landing page
 
-A single-page studio landing site: a 3D head made of ~57,000 glowing particles floats in a
+A single-page studio landing site: a 3D head made of ~170,000 glowing particles floats in a
 dark-blue scene with volumetric light beams, framed by an **ENVISION / MATERIALIZE** headline,
 navigation, call-to-action buttons and a featured-work card.
 
@@ -39,11 +39,17 @@ Most visual parameters live in the `CFG` object at the top of `js/particles.js`
 drag / spring strength, number of stars…). You can also experiment live from the browser
 console, e.g. `NoemaScene.config.radius = 1.4` or `NoemaScene.config.drag = 20`.
 
+**Particle count:** `CFG.density` controls how many particles cover the head (default `2.2`
+→ ~170k particles; phones automatically use `1.4` → ~110k). Try other values without editing
+code by adding `?density=` to the URL, e.g. `index.html?density=3.5` for an even denser head
+or `?density=1` for a lighter one. Per-particle brightness is scaled automatically so more
+particles make the head richer rather than blown-out.
+
 ### Re-generating the head point cloud
 
 ```bash
 node tools/bake-head.mjs            # downloads the model from the three.js repo
-node tools/bake-head.mjs model.glb 60000   # or use a local GLB and a custom point count
+node tools/bake-head.mjs model.glb 80000   # or use a local GLB and a custom point count (default 64000)
 ```
 
 The script area-samples the mesh surface, drops the shoulders, and removes hidden interior

@@ -23,7 +23,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const outFile = path.join(here, '..', 'js', 'head-data.js');
 
 const inputPath = process.argv[2];
-const COUNT = Number(process.argv[3] || 46000);
+const COUNT = Number(process.argv[3] || 64000);
 const SCALE = 4.5; // positions are stored as int16 in [-SCALE, SCALE]
 
 async function loadGlb() {

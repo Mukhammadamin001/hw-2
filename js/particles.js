@@ -2,7 +2,8 @@
  * Particle head scene — plain WebGL, no dependencies.
  *
  *  - Background: navy gradient + volumetric "god ray" light beams + glow + grain
- *  - Head: ~56k particles sampled from a 3D head scan (js/head-data.js),
+ *  - Head: ~170k particles (64k sampled from a 3D head scan in js/head-data.js,
+ *    densified at load time), 
  *    lit from the upper left, with chromatic fringes and depth of field.
  *    The neck slowly dissolves into drifting dust.
  *  - Stars: small drifting specks in front of and behind the head.
@@ -39,8 +40,9 @@
     basePitch: 0.3, // …and tilted down, so the crown catches the light
     followYaw: 0.38, // how much the head turns toward the pointer
     followPitch: 0.16,
-    fuzzRatio: 0.24, // extra loose particles floating around the surface
-    stars: 900,
+    density: 2.2, // surface particles per baked sample (more = denser head); lowered on phones
+    fuzzRatio: 0.2, // extra loose particles floating around the surface
+    stars: 1800,
     // pointer physics
     radius: 0.85, // influence radius in world units
     drag: 12, // how strongly particles are carried with the pointer
@@ -70,11 +72,25 @@
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
-  var FUZZ = Math.round(BASE * CFG.fuzzRatio);
-  var HEAD = BASE + FUZZ; // particles taking part in the pointer simulation
+  // Density: fewer particles on small / low-power devices; override with ?density=3
+  var density = CFG.density;
+  var smallScreen = Math.min(window.innerWidth, window.innerHeight) < 600;
+  var lowPower = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2;
+  if (smallScreen) density = Math.min(density, 1.4);
+  if (lowPower) density = Math.min(density, 1.0);
+  var qd = parseFloat((location.search.match(/[?&]density=([\d.]+)/) || [])[1]);
+  if (qd > 0) density = Math.min(6, Math.max(0.3, qd));
+
+  var SURF = Math.max(1000, Math.round(BASE * density)); // particles on the head surface
+  var FUZZ = Math.round(SURF * CFG.fuzzRatio);
+  var HEAD = SURF + FUZZ; // particles taking part in the pointer simulation
   var STARS = CFG.stars;
   var TOTAL = HEAD + STARS;
-  var GLOW = Math.round(BASE / 4); // particles re-drawn as a soft bloom layer
+  var GLOW = Math.round(Math.min(BASE, SURF) / 5); // particles re-drawn as a soft bloom layer
+  // More particles → each one a little dimmer and smaller, so the head gets richer, not blown out
+  var DENSITY_REF = 57000; // head particle count the look was originally tuned for
+  var EXPOSURE = Math.min(1.2, Math.pow(HEAD / DENSITY_REF, -0.3));
+  var SIZE_SCALE = Math.min(1.15, Math.pow(HEAD / DENSITY_REF, -0.08));
 
   var aRest = new Float32Array(TOTAL * 3);
   var aNormal = new Float32Array(TOTAL * 3);
@@ -86,7 +102,8 @@
   var s = DATA.scale / 32767;
   var px = CFG.pivot[0], py = CFG.pivot[1], pz = CFG.pivot[2];
 
-  for (i = 0; i < BASE; i++) {
+  var baseCount = Math.min(BASE, SURF);
+  for (i = 0; i < baseCount; i++) {
     var nx = qNrm[i * 3] / 127, ny = qNrm[i * 3 + 1] / 127, nz = qNrm[i * 3 + 2] / 127;
     // Give the surface a little thickness
     var lift = (rand() - 0.35) * 0.07;
@@ -100,8 +117,32 @@
     aMeta[i * 2 + 1] = 0.7 + Math.pow(rand(), 3) * 1.1;
   }
 
-  for (i = BASE; i < HEAD; i++) {
-    var src = Math.floor(rand() * BASE);
+  // Densify: extra surface particles scattered in the tangent plane around the baked
+  // samples (about one sample-spacing away), so the head gets denser without a bigger data file.
+  for (i = baseCount; i < SURF; i++) {
+    var b = i % baseCount;
+    var bx = aNormal[b * 3], by = aNormal[b * 3 + 1], bz = aNormal[b * 3 + 2];
+    // tangent basis (t1, t2) perpendicular to the normal
+    var ax = Math.abs(bx) < 0.9 ? 1 : 0, ay = ax ? 0 : 1;
+    var t1x = by * 0 - bz * ay, t1y = bz * ax - bx * 0, t1z = bx * ay - by * ax;
+    var t1l = Math.hypot(t1x, t1y, t1z) || 1;
+    t1x /= t1l; t1y /= t1l; t1z /= t1l;
+    var t2x = by * t1z - bz * t1y, t2y = bz * t1x - bx * t1z, t2z = bx * t1y - by * t1x;
+    var ang = rand() * Math.PI * 2, rad = 0.012 + Math.sqrt(rand()) * 0.04;
+    var ca = Math.cos(ang) * rad, sa = Math.sin(ang) * rad;
+    var dl = (rand() - 0.35) * 0.06;
+    aRest[i * 3] = aRest[b * 3] + t1x * ca + t2x * sa + bx * dl;
+    aRest[i * 3 + 1] = aRest[b * 3 + 1] + t1y * ca + t2y * sa + by * dl;
+    aRest[i * 3 + 2] = aRest[b * 3 + 2] + t1z * ca + t2z * sa + bz * dl;
+    aNormal[i * 3] = bx;
+    aNormal[i * 3 + 1] = by;
+    aNormal[i * 3 + 2] = bz;
+    aMeta[i * 2] = 0;
+    aMeta[i * 2 + 1] = 0.7 + Math.pow(rand(), 3) * 1.1;
+  }
+
+  for (i = SURF; i < HEAD; i++) {
+    var src = Math.floor(rand() * SURF);
     var fnx = aNormal[src * 3], fny = aNormal[src * 3 + 1], fnz = aNormal[src * 3 + 2];
     var far = rand() < 0.12;
     var d = far ? 0.25 + rand() * 0.9 : 0.04 + Math.pow(rand(), 2) * 0.32;
@@ -216,6 +257,8 @@
     'uniform float uFocus;',
     'uniform float uViewH;', // viewport height in device pixels
     'uniform float uGlow;', // 1 = soft bloom pass
+    'uniform float uExposure;', // per-particle brightness (compensates for particle count)
+    'uniform float uSizeScale;',
     '',
     'varying vec3 vColor;',
     'varying vec2 vCA;',
@@ -310,13 +353,13 @@
     '    b *= tw;',
     '    vec3 dim = vec3(0.2, 0.3, 0.68);',
     '    vec3 lit = vec3(0.93, 0.96, 1.0);',
-    '    color = mix(dim, lit, smoothstep(0.2, 1.05, b)) * (b + sparkle);',
+    '    color = mix(dim, lit, smoothstep(0.2, 1.05, b)) * (b + sparkle) * uExposure;',
     '  } else {',
     '    color = vec3(0.75, 0.83, 1.0) * (0.5 + 0.5 * aRand.z) * (tw + sparkle);',
     '  }',
     '',
     '  // ---- size + depth of field ----',
-    '  float base = uSize * aMeta.y * (12.0 / depth);',
+    '  float base = uSize * aMeta.y * (12.0 / depth) * (kind < 1.5 ? uSizeScale : 1.0);',
     '  float coc = abs(depth - uFocus) * uViewH * 0.0026 * cocScale;',
     '  float size = base + coc;',
     '  alpha *= clamp((base * base) / (size * size), 0.05, 1.0);',
@@ -696,6 +739,8 @@
     gl.uniform1f(pu.uSize, Math.max(1.3, Math.min(4.2, H / 480)) * (camDist / 12) * 0.92);
     gl.uniform1f(pu.uFocus, camDist - CFG.headPos[2] - 0.6);
     gl.uniform1f(pu.uViewH, H);
+    gl.uniform1f(pu.uExposure, EXPOSURE);
+    gl.uniform1f(pu.uSizeScale, SIZE_SCALE);
     gl.uniform1f(pu.uGlow, 1);
     gl.drawArrays(gl.POINTS, 0, GLOW); // particles are in random order, so the first N are a random subset
     gl.uniform1f(pu.uGlow, 0);
@@ -708,5 +753,5 @@
   requestAnimationFrame(frame);
 
   // Exposed for tweaking from the dev-tools console, e.g. NoemaScene.config.radius = 1.4
-  window.NoemaScene = { config: CFG };
+  window.NoemaScene = { config: CFG, particles: TOTAL, headParticles: HEAD };
 })();
